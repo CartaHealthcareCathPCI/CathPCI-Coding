@@ -151,6 +151,61 @@
             background: #455a64;
         }
 
+        .filter-buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding: 1rem 0;
+            border-top: 1px solid var(--border);
+            margin-top: 1rem;
+        }
+
+        .filter-button {
+            background: var(--bg-main);
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-button:hover {
+            background: var(--bg-card);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow);
+        }
+
+        .filter-button.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        .filter-button.active:hover {
+            background: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        .filter-count {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .filter-button.active .filter-count {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -430,27 +485,29 @@
                 <button onclick="performSearch()">Search</button>
                 <button class="clear-button" onclick="clearSearch()">Clear</button>
             </div>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Data Dictionary</span>
-                    <span class="stat-value" id="dictionaryCount">346</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Coding Directives</span>
-                    <span class="stat-value" id="directivesCount">145</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Peer Questions</span>
-                    <span class="stat-value" id="peersCount">38</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Supplemental</span>
-                    <span class="stat-value" id="supplementCount">6</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total Resources</span>
-                    <span class="stat-value" id="totalCount">535</span>
-                </div>
+            <div class="filter-buttons-container">
+                <button class="filter-button active" onclick="setResourceFilter('all')">
+                    All Resources
+                    <span class="filter-count" id="totalCount">535</span>
+                </button>
+                <button class="filter-button" onclick="setResourceFilter('Data Dictionary')">
+                    Data Dictionary
+                    <span class="filter-count" id="dictionaryCount">346</span>
+                </button>
+                <button class="filter-button" onclick="setResourceFilter('Additional Coding Directives')">
+                    Additional Coding Directives
+                    <span class="filter-count" id="directivesCount">145</span>
+                </button>
+                <button class="filter-button" onclick="setResourceFilter('Questions from your Peers')">
+                    Questions from your Peers
+                    <span class="filter-count" id="peersCount">38</span>
+                </button>
+                <button class="filter-button" onclick="setResourceFilter('Supplemental Data Dictionary')">
+                    Supplemental Dictionary
+                    <span class="filter-count" id="supplementCount">6</span>
+                </button>
+            </div>
+            <div class="stats" style="display: none;">
                 <div class="stat-item">
                     <span class="stat-label">Results Found</span>
                     <span class="stat-value" id="resultsCount">0</span>
@@ -476,6 +533,23 @@
         const directivesData = combinedData.filter(item => item.source === 'Additional Coding Directives');
         const peersData = combinedData.filter(item => item.source === 'Questions from your Peers');
         const supplementData = combinedData.filter(item => item.source === 'Supplemental Data Dictionary');
+
+        // Track the currently active filter
+        let currentFilter = 'all';
+
+        // Function to set the resource filter
+        function setResourceFilter(filterType) {
+            currentFilter = filterType;
+
+            // Update button active states
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.filter-button').classList.add('active');
+
+            // Perform search with new filter
+            performSearch();
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -697,7 +771,7 @@
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const resultsContainer = document.getElementById('resultsContainer');
-            
+
             if (!searchTerm) {
                 resultsContainer.innerHTML = `
                     <div class="empty-state">
@@ -710,7 +784,14 @@
                 return;
             }
 
-            const results = combinedData.filter(item => searchInItem(item, searchTerm));
+            // Filter by search term first
+            let results = combinedData.filter(item => searchInItem(item, searchTerm));
+
+            // Then filter by resource type if not 'all'
+            if (currentFilter !== 'all') {
+                results = results.filter(item => item.source === currentFilter);
+            }
+
             document.getElementById('resultsCount').textContent = results.length;
 
             if (results.length === 0) {
